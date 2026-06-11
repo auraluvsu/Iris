@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Plus, Trash2, Link, ExternalLink, Loader, Archive } from 'lucide-react'
 import { getDueState, formatDue } from '../utils/dueDate'
+import { PomodoroInline } from './PomodoroTimer'
 
 const STATUSES = [
   { value: 'urgent',   label: 'Urgent',   color: 'var(--urgent)'   },
