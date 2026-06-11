@@ -5,7 +5,7 @@ export default function Topbar({ page, setPage, onFocus }) {
   return (
     <header style={styles.header}>
       <span style={styles.logo}>
-        <span style={styles.logoAccent}>◈</span> dashboard
+        <span style={styles.logoAccent}>◈</span> iris
       </span>
       <nav style={styles.nav}>
         <TabBtn active={page === 'tasks'} onClick={() => setPage('tasks')} icon={<LayoutGrid size={14}/>}>Cards</TabBtn>
