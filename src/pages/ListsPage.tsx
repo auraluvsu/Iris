@@ -1,13 +1,31 @@
-import { useState } from 'react'
-import { Plus, Trash2, CheckSquare, List, Hash, Pencil, Check, X } from 'lucide-react'
+import { useState, ReactNode, CSSProperties } from 'react'
+import { Plus, Trash2, CheckSquare, List, Hash, Pencil, Check } from 'lucide-react'
 
-const TYPE_META = {
-  checkbox: { icon: <CheckSquare size={13}/>, label: 'Checklist' },
-  bullet:   { icon: <List size={13}/>,        label: 'Bullet'    },
-  numeric:  { icon: <Hash size={13}/>,        label: 'Numbered'  },
+interface ListItem {
+  id: string
+  text: string
+  done: boolean
 }
 
-const SEED_LISTS = [
+interface TaskList {
+  id: string
+  name: string
+  type: 'checkbox' | 'bullet' | 'numeric'
+  items: ListItem[]
+}
+
+interface TypeMetaItem {
+  icon: ReactNode
+  label: string
+}
+
+const TYPE_META: Record<string, TypeMetaItem> = {
+  checkbox: { icon: <CheckSquare size={13} />, label: 'Checklist' },
+  bullet: { icon: <List size={13} />, label: 'Bullet' },
+  numeric: { icon: <Hash size={13} />, label: 'Numbered' },
+}
+
+const SEED_LISTS: TaskList[] = [
   {
     id: '1', name: 'Reading list', type: 'bullet',
     items: [
@@ -26,68 +44,67 @@ const SEED_LISTS = [
 ]
 
 export default function ListsPage() {
-  const [lists, setLists] = useState(() => {
+  const [lists, setLists] = useState<TaskList[]>(() => {
     try { return JSON.parse(localStorage.getItem('lists')) || SEED_LISTS } catch { return SEED_LISTS }
   })
-  const [activeId, setActiveId]   = useState(SEED_LISTS[0].id)
+  const [activeId, setActiveId] = useState(SEED_LISTS[0].id)
   const [newListName, setNewListName] = useState('')
-  const [newListType, setNewListType] = useState('checkbox')
-  const [creating, setCreating]   = useState(false)
-  const [newItem, setNewItem]     = useState('')
+  const [newListType, setNewListType] = useState<'checkbox' | 'bullet' | 'numeric'>('checkbox')
+  const [creating, setCreating] = useState(false)
+  const [newItem, setNewItem] = useState('')
 
-  const persist = (updated) => {
+  const persist = (updated: TaskList[]): void => {
     setLists(updated)
     localStorage.setItem('lists', JSON.stringify(updated))
   }
 
   const active = lists.find(l => l.id === activeId)
 
-  const addList = () => {
+  const addList = (): void => {
     if (!newListName.trim()) return
-    const l = { id: crypto.randomUUID(), name: newListName.trim(), type: newListType, items: [] }
+    const l: TaskList = { id: crypto.randomUUID(), name: newListName.trim(), type: newListType, items: [] }
     persist([...lists, l])
     setActiveId(l.id)
     setNewListName('')
     setCreating(false)
   }
 
-  const deleteList = (id) => {
+  const deleteList = (id: string): void => {
     if (!confirm('Delete this list?')) return
     const updated = lists.filter(l => l.id !== id)
     persist(updated)
-    if (activeId === id) setActiveId(updated[0]?.id || null)
+    if (activeId === id) setActiveId(updated[0]?.id || '')
   }
 
-  const updateActive = (fn) => {
+  const updateActive = (fn: (list: TaskList) => TaskList): void => {
     persist(lists.map(l => l.id === activeId ? fn(l) : l))
   }
 
-  const addItem = () => {
+  const addItem = (): void => {
     if (!newItem.trim()) return
     updateActive(l => ({ ...l, items: [...l.items, { id: crypto.randomUUID(), text: newItem.trim(), done: false }] }))
     setNewItem('')
   }
 
-  const toggleItem = (itemId) => {
+  const toggleItem = (itemId: string): void => {
     updateActive(l => ({ ...l, items: l.items.map(i => i.id === itemId ? { ...i, done: !i.done } : i) }))
   }
 
-  const deleteItem = (itemId) => {
+  const deleteItem = (itemId: string): void => {
     updateActive(l => ({ ...l, items: l.items.filter(i => i.id !== itemId) }))
   }
 
-  const renameItem = (itemId, text) => {
+  const renameItem = (itemId: string, text: string): void => {
     updateActive(l => ({ ...l, items: l.items.map(i => i.id === itemId ? { ...i, text } : i) }))
   }
 
   return (
     <div style={styles.page}>
-      {/* Sidebar */}
       <aside style={styles.sidebar}>
         <div style={styles.sideHeader}>
           <span style={styles.sideTitle}>Lists</span>
           <button style={styles.iconBtn} onClick={() => setCreating(!creating)} title="New list">
-            <Plus size={14}/>
+            <Plus size={14} />
           </button>
         </div>
 
@@ -105,7 +122,7 @@ export default function ListsPage() {
               {Object.entries(TYPE_META).map(([k, v]) => (
                 <button
                   key={k}
-                  onClick={() => setNewListType(k)}
+                  onClick={() => setNewListType(k as 'checkbox' | 'bullet' | 'numeric')}
                   style={{
                     ...styles.typePill,
                     borderColor: newListType === k ? 'var(--jade)' : 'var(--border)',
@@ -143,14 +160,13 @@ export default function ListsPage() {
                 className="del-btn"
                 onClick={e => { e.stopPropagation(); deleteList(l.id) }}
               >
-                <Trash2 size={11}/>
+                <Trash2 size={11} />
               </button>
             </div>
           ))}
         </div>
       </aside>
 
-      {/* Main */}
       <main style={styles.main}>
         {active ? (
           <>
@@ -169,7 +185,7 @@ export default function ListsPage() {
 
             <div style={styles.itemList}>
               {active.items.map((item, idx) => (
-                <ListItem
+                <ListItemComponent
                   key={item.id}
                   item={item}
                   index={idx}
@@ -180,7 +196,6 @@ export default function ListsPage() {
                 />
               ))}
 
-              {/* Add item row */}
               <div style={styles.addItemRow}>
                 <span style={styles.addItemPrefix}>
                   {active.type === 'checkbox' ? '☐' : active.type === 'numeric' ? `${active.items.length + 1}.` : '•'}
@@ -193,14 +208,14 @@ export default function ListsPage() {
                   placeholder="Add item…"
                 />
                 {newItem && (
-                  <button style={styles.addItemBtn} onClick={addItem}><Plus size={13}/></button>
+                  <button style={styles.addItemBtn} onClick={addItem}><Plus size={13} /></button>
                 )}
               </div>
             </div>
           </>
         ) : (
           <div style={styles.empty}>
-            <List size={32} color="var(--faint)"/>
+            <List size={32} color="var(--faint)" />
             <p style={{ fontFamily: "'DM Mono', monospace", color: 'var(--muted)', fontSize: 13 }}>No lists yet. Create one.</p>
           </div>
         )}
@@ -213,22 +228,31 @@ export default function ListsPage() {
   )
 }
 
-function ListItem({ item, index, type, onToggle, onDelete, onRename }) {
-  const [editing, setEditing] = useState(false)
-  const [val, setVal]         = useState(item.text)
-  const [hover, setHover]     = useState(false)
+interface ListItemComponentProps {
+  item: ListItem
+  index: number
+  type: 'checkbox' | 'bullet' | 'numeric'
+  onToggle: () => void
+  onDelete: () => void
+  onRename: (text: string) => void
+}
 
-  const commit = () => {
+function ListItemComponent({ item, index, type, onToggle, onDelete, onRename }: ListItemComponentProps) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(item.text)
+  const [hover, setHover] = useState(false)
+
+  const commit = (): void => {
     if (val.trim()) onRename(val.trim())
     else setVal(item.text)
     setEditing(false)
   }
 
   const prefix = type === 'checkbox'
-    ? <CheckBox done={item.done} onToggle={onToggle}/>
+    ? <CheckBoxComponent done={item.done} onToggle={onToggle} />
     : type === 'numeric'
-    ? <span style={styles.numPrefix}>{index + 1}.</span>
-    : <span style={styles.bulletPrefix}>•</span>
+      ? <span style={styles.numPrefix}>{index + 1}.</span>
+      : <span style={styles.bulletPrefix}>•</span>
 
   return (
     <div
@@ -260,27 +284,32 @@ function ListItem({ item, index, type, onToggle, onDelete, onRename }) {
       )}
       {hover && !editing && (
         <div style={styles.itemActions}>
-          <button style={styles.iconBtn} onClick={() => setEditing(true)}><Pencil size={11}/></button>
-          <button style={{ ...styles.iconBtn, color: 'var(--urgent)' }} onClick={onDelete}><Trash2 size={11}/></button>
+          <button style={styles.iconBtn} onClick={() => setEditing(true)}><Pencil size={11} /></button>
+          <button style={{ ...styles.iconBtn, color: 'var(--urgent)' }} onClick={onDelete}><Trash2 size={11} /></button>
         </div>
       )}
     </div>
   )
 }
 
-function CheckBox({ done, onToggle }) {
+interface CheckBoxComponentProps {
+  done: boolean
+  onToggle: () => void
+}
+
+function CheckBoxComponent({ done, onToggle }: CheckBoxComponentProps) {
   return (
     <button onClick={onToggle} style={{
       ...styles.checkbox,
       background: done ? 'var(--jade)' : 'transparent',
       borderColor: done ? 'var(--jade)' : 'var(--faint)',
     }}>
-      {done && <Check size={10} color="#0D1A13" strokeWidth={3}/>}
+      {done && <Check size={10} color="#0D1A13" strokeWidth={3} />}
     </button>
   )
 }
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   page: { display: 'flex', height: 'calc(100vh - 52px)', overflow: 'hidden' },
   sidebar: {
     width: 220, flexShrink: 0, background: 'var(--surface)',

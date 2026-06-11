@@ -1,74 +1,107 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, CSSProperties, ReactNode } from 'react'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
-  closestCorners, useDroppable,
+  closestCorners, useDroppable, DragStartEvent, DragEndEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext, verticalListSortingStrategy,
-  useSortable, arrayMove,
+  useSortable, arrayMove, SortableContextProps,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, Trash2, Link, Layers, Palette, Archive } from 'lucide-react'
-import CardModal    from '../components/CardModal'
+import CardModal from '../components/CardModal'
 import BackdropPicker, { BACKDROPS } from '../components/BackdropPicker'
 import ArchiveDrawer from '../components/ArchiveDrawer'
 import { getDueState, formatDue } from '../utils/dueDate'
 
-const STATUS_META = {
-  urgent:   { label: 'Urgent',   color: 'var(--urgent)',   bg: 'var(--urgent-bg)'   },
-  pressing: { label: 'Pressing', color: 'var(--pressing)', bg: 'var(--pressing-bg)' },
-  lenient:  { label: 'Lenient',  color: 'var(--lenient)',  bg: 'var(--lenient-bg)'  },
+interface Card {
+  id: string
+  title: string
+  desc: string
+  status: 'urgent' | 'pressing' | 'lenient'
+  stage: 'todo' | 'inprogress' | 'done'
+  subcards: Array<{ id: string; text: string; done: boolean }>
+  links: Array<{ id: string; url: string; title: string }>
+  dueDate: string
+  archivedAt?: string
 }
-const STAGE_META = {
-  todo:       { label: 'Yet to Start', accent: 'var(--faint)'     },
-  inprogress: { label: 'Working On',   accent: 'var(--jade)'      },
-  done:       { label: 'Done',         accent: 'var(--jade-dark)' },
-}
-const STAGES = ['todo', 'inprogress', 'done']
 
-const SEED = [
-  { id: '1', title: 'Set up Vercel deployment', desc: 'Configure env vars and domain', status: 'urgent',   stage: 'inprogress', subcards: [], links: [], dueDate: '' },
-  { id: '2', title: 'Style landing page',        desc: '',                              status: 'pressing', stage: 'todo',       subcards: [], links: [], dueDate: '' },
-  { id: '3', title: 'Write README',              desc: '',                              status: 'lenient',  stage: 'todo',       subcards: [], links: [], dueDate: '' },
-  { id: '4', title: 'Initial scaffold',          desc: 'React + Vite done',             status: 'lenient',  stage: 'done',       subcards: [], links: [], dueDate: '' },
+interface ModalState {
+  card?: Partial<Card>
+}
+
+interface PrevStageRef {
+  [cardId: string]: string
+}
+
+interface StatusMeta {
+  label: string
+  color: string
+  bg: string
+}
+
+interface StageMeta {
+  label: string
+  accent: string
+}
+
+const STATUS_META: Record<string, StatusMeta> = {
+  urgent: { label: 'Urgent', color: 'var(--urgent)', bg: 'var(--urgent-bg)' },
+  pressing: { label: 'Pressing', color: 'var(--pressing)', bg: 'var(--pressing-bg)' },
+  lenient: { label: 'Lenient', color: 'var(--lenient)', bg: 'var(--lenient-bg)' },
+}
+
+const STAGE_META: Record<string, StageMeta> = {
+  todo: { label: 'Yet to Start', accent: 'var(--faint)' },
+  inprogress: { label: 'Working On', accent: 'var(--jade)' },
+  done: { label: 'Done', accent: 'var(--jade-dark)' },
+}
+
+const STAGES = ['todo', 'inprogress', 'done'] as const
+
+const SEED: Card[] = [
+  { id: '1', title: 'Set up Vercel deployment', desc: 'Configure env vars and domain', status: 'urgent', stage: 'inprogress', subcards: [], links: [], dueDate: '' },
+  { id: '2', title: 'Style landing page', desc: '', status: 'pressing', stage: 'todo', subcards: [], links: [], dueDate: '' },
+  { id: '3', title: 'Write README', desc: '', status: 'lenient', stage: 'todo', subcards: [], links: [], dueDate: '' },
+  { id: '4', title: 'Initial scaffold', desc: 'React + Vite done', status: 'lenient', stage: 'done', subcards: [], links: [], dueDate: '' },
 ]
 
-function load(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback } catch { return fallback }
+function load<T>(key: string, fallback: T): T {
+  try { return JSON.parse(localStorage.getItem(key) ?? '') ?? fallback } catch { return fallback }
 }
 
 export default function TasksPage() {
-  const [cards,      setCards]      = useState(() => load('cards', SEED))
-  const [archived,   setArchived]   = useState(() => load('archived', []))
-  const [modal,      setModal]      = useState(null)
+  const [cards, setCards] = useState<Card[]>(() => load('cards', SEED))
+  const [archived, setArchived] = useState<Card[]>(() => load('archived', []))
+  const [modal, setModal] = useState<ModalState | null>(null)
   const [backdropId, setBackdropId] = useState(() => load('backdropId', 'default'))
-  const [showBdrop,  setShowBdrop]  = useState(false)
-  const [showArchive,setShowArchive]= useState(false)
-  const [activeCard, setActiveCard] = useState(null)
-  const [doneFlash,  setDoneFlash]  = useState(null)
-  const prevStageRef = useRef({})
+  const [showBdrop, setShowBdrop] = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
+  const [activeCard, setActiveCard] = useState<Card | null>(null)
+  const [doneFlash, setDoneFlash] = useState<string | null>(null)
+  const prevStageRef = useRef<PrevStageRef>({})
 
-  const persist   = (updated)  => { setCards(updated);    localStorage.setItem('cards',      JSON.stringify(updated)) }
-  const persistAr = (updated)  => { setArchived(updated); localStorage.setItem('archived',   JSON.stringify(updated)) }
-  const persistBd = (id)       => { setBackdropId(id);    localStorage.setItem('backdropId', JSON.stringify(id)) }
+  const persist = (updated: Card[]): void => { setCards(updated); localStorage.setItem('cards', JSON.stringify(updated)) }
+  const persistAr = (updated: Card[]): void => { setArchived(updated); localStorage.setItem('archived', JSON.stringify(updated)) }
+  const persistBd = (id: string): void => { setBackdropId(id); localStorage.setItem('backdropId', JSON.stringify(id)) }
 
-  const saveCard = (card) => {
+  const saveCard = (card: Card): void => {
     const exists = cards.find(c => c.id === card.id)
     persist(exists ? cards.map(c => c.id === card.id ? card : c) : [...cards, card])
   }
 
-  const deleteCard = (id) => {
+  const deleteCard = (id: string): void => {
     if (confirm('Delete this card?')) persist(cards.filter(c => c.id !== id))
   }
 
-  const archiveCard = (id) => {
+  const archiveCard = (id: string): void => {
     const card = cards.find(c => c.id === id)
     if (!card) return
     persistAr([{ ...card, archivedAt: new Date().toISOString() }, ...archived])
     persist(cards.filter(c => c.id !== id))
   }
 
-  const restoreCard = (id) => {
+  const restoreCard = (id: string): void => {
     const card = archived.find(c => c.id === id)
     if (!card) return
     const { archivedAt, ...rest } = card
@@ -76,61 +109,58 @@ export default function TasksPage() {
     persistAr(archived.filter(c => c.id !== id))
   }
 
-  const deleteArchived = (id) => persistAr(archived.filter(c => c.id !== id))
+  const deleteArchived = (id: string): void => persistAr(archived.filter(c => c.id !== id))
 
   const backdrop = BACKDROPS.find(b => b.id === backdropId) || BACKDROPS[0]
 
-  // ── / shortcut ────────────────────────────────────────────────────────────
   useEffect(() => {
-    const handler = (e) => {
-      // don't fire if typing in an input/textarea/modal already open
+    const handler = (e: KeyboardEvent): void => {
       if (modal !== null) return
-      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return
       if (e.key === '/') {
         e.preventDefault()
-        setModal({}) // no default stage — modal will ask
+        setModal({})
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [modal])
 
-  // ── DnD ───────────────────────────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   const cardsByStage = useMemo(() => {
-    const m = {}
+    const m: Record<string, Card[]> = {}
     STAGES.forEach(s => { m[s] = cards.filter(c => c.stage === s) })
     return m
   }, [cards])
 
-  const handleDragStart = ({ active }) => {
+  const handleDragStart = ({ active }: DragStartEvent): void => {
     const card = cards.find(c => c.id === active.id)
     setActiveCard(card || null)
     if (card) prevStageRef.current[card.id] = card.stage
   }
 
-  const handleDragEnd = ({ active, over }) => {
+  const handleDragEnd = ({ active, over }: DragEndEvent): void => {
     setActiveCard(null)
     if (!over) return
-    const activeId = active.id
-    const overId   = over.id
+    const activeId = active.id as string
+    const overId = over.id as string
     if (activeId === overId) return
 
     const card = cards.find(c => c.id === activeId)
     if (!card) return
 
-    const targetStage = STAGES.includes(overId)
+    const targetStage = STAGES.includes(overId as any)
       ? overId
       : (cards.find(c => c.id === overId)?.stage ?? card.stage)
 
-    let updated = cards.map(c => c.id === activeId ? { ...c, stage: targetStage } : c)
+    let updated = cards.map(c => c.id === activeId ? { ...c, stage: targetStage as any } : c)
 
-    if (!STAGES.includes(overId)) {
+    if (!STAGES.includes(overId as any)) {
       const stageCards = updated.filter(c => c.stage === targetStage)
       const otherCards = updated.filter(c => c.stage !== targetStage)
-      const fromIdx    = stageCards.findIndex(c => c.id === activeId)
-      const toIdx      = stageCards.findIndex(c => c.id === overId)
+      const fromIdx = stageCards.findIndex(c => c.id === activeId)
+      const toIdx = stageCards.findIndex(c => c.id === overId)
       if (fromIdx !== -1 && toIdx !== -1) {
         const reordered = arrayMove(stageCards, fromIdx, toIdx)
         updated = [...otherCards, ...reordered]
@@ -162,7 +192,6 @@ export default function TasksPage() {
         .drawer-enter { animation: drawerIn 0.28s cubic-bezier(0.22,1,0.36,1) forwards; }
       `}</style>
 
-      {/* Top row */}
       <div style={s.topRow}>
         <div style={s.titleArea}>
           <h1 style={s.pageTitle}>Cards</h1>
@@ -183,9 +212,7 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Legend */}
       <div style={s.legend}>
-        {/* Priority dots */}
         {Object.entries(STATUS_META).map(([k, v]) => (
           <div key={k} style={s.legendItem}>
             <span style={{ ...s.legendDot, background: v.color }} />
@@ -195,7 +222,6 @@ export default function TasksPage() {
 
         <div style={s.legendDivider} />
 
-        {/* Stage bars */}
         {Object.entries(STAGE_META).map(([k, v]) => (
           <div key={k} style={s.legendItem}>
             <span style={{ ...s.legendBar, background: v.accent }} />
@@ -205,7 +231,6 @@ export default function TasksPage() {
 
         <div style={s.legendDivider} />
 
-        {/* Due date dots */}
         <div style={s.legendItem}>
           <span style={{ ...s.legendDot, background: 'var(--urgent)' }} />
           <span style={s.legendLabel}>Due today / overdue</span>
@@ -224,7 +249,6 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Board */}
       <DndContext sensors={sensors} collisionDetection={closestCorners}
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div style={s.board}>
@@ -235,6 +259,7 @@ export default function TasksPage() {
               onAdd={() => setModal({ card: { stage } })}
               onEdit={card => setModal({ card })}
               onDelete={deleteCard}
+              onArchive={archiveCard}
             />
           ))}
         </div>
@@ -266,8 +291,17 @@ export default function TasksPage() {
   )
 }
 
-// ── Column ─────────────────────────────────────────────────────────────────
-function Column({ stage, cards, doneFlash, onAdd, onEdit, onDelete }) {
+interface ColumnProps {
+  stage: string
+  cards: Card[]
+  doneFlash: string | null
+  onAdd: () => void
+  onEdit: (card: Card) => void
+  onDelete: (id: string) => void
+  onArchive: (id: string) => void
+}
+
+function Column({ stage, cards, doneFlash, onAdd, onEdit, onDelete, onArchive }: ColumnProps) {
   const meta = STAGE_META[stage]
   const { setNodeRef, isOver } = useDroppable({ id: stage })
 
@@ -287,7 +321,7 @@ function Column({ stage, cards, doneFlash, onAdd, onEdit, onDelete }) {
             <SortableCard
               key={card.id} card={card}
               flashing={doneFlash === card.id}
-              onEdit={onEdit} onDelete={onDelete}
+              onEdit={onEdit} onDelete={onDelete} onArchive={onArchive}
             />
           ))}
           <button style={s.inlineAdd} onClick={onAdd}>
@@ -299,30 +333,46 @@ function Column({ stage, cards, doneFlash, onAdd, onEdit, onDelete }) {
   )
 }
 
-// ── SortableCard ────────────────────────────────────────────────────────────
-function SortableCard({ card, flashing, onEdit, onDelete }) {
+interface SortableCardProps {
+  card: Card
+  flashing: boolean
+  onEdit: (card: Card) => void
+  onDelete: (id: string) => void
+  onArchive: (id: string) => void
+}
+
+function SortableCard({ card, flashing, onEdit, onDelete, onArchive }: SortableCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id })
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}>
-      <CardChip card={card} flashing={flashing} onEdit={onEdit} onDelete={onDelete}
+      <CardChip card={card} flashing={flashing} onEdit={onEdit} onDelete={onDelete} onArchive={onArchive}
         dragListeners={listeners} dragAttributes={attributes} />
     </div>
   )
 }
 
-// ── CardChip ────────────────────────────────────────────────────────────────
-function CardChip({ card, flashing, onEdit, onDelete, dragListeners, dragAttributes, overlay }) {
-  const [hover]     = useState(false)
+interface CardChipProps {
+  card: Card
+  flashing?: boolean
+  onEdit?: (card: Card) => void
+  onDelete?: (id: string) => void
+  onArchive?: (id: string) => void
+  dragListeners?: any
+  dragAttributes?: any
+  overlay?: boolean
+}
+
+function CardChip({ card, flashing, onEdit, onDelete, onArchive, dragListeners, dragAttributes, overlay }: CardChipProps) {
   const [hovered, setHovered] = useState(false)
-  const pointerDown = useRef(null)
+  const pointerDown = useRef<{ x: number; y: number } | null>(null)
 
-  const sm            = STATUS_META[card.status] || STATUS_META.lenient
-  const doneSubcards  = (card.subcards || []).filter(s => s.done).length
+  const sm = STATUS_META[card.status] || STATUS_META.lenient
+  const doneSubcards = (card.subcards || []).filter(s => s.done).length
   const totalSubcards = (card.subcards || []).length
-  const due           = getDueState(card.dueDate)
+  const due = getDueState(card.dueDate)
 
-  const handlePointerDown = (e) => { pointerDown.current = { x: e.clientX, y: e.clientY } }
-  const handlePointerUp   = (e) => {
+  const handlePointerDown = (e: React.PointerEvent): void => { pointerDown.current = { x: e.clientX, y: e.clientY } }
+  const handlePointerUp = (e: React.PointerEvent): void => {
     if (!onEdit || overlay) return
     const dx = Math.abs(e.clientX - (pointerDown.current?.x ?? e.clientX))
     const dy = Math.abs(e.clientY - (pointerDown.current?.y ?? e.clientY))
@@ -346,23 +396,31 @@ function CardChip({ card, flashing, onEdit, onDelete, dragListeners, dragAttribu
       {...dragListeners}
       {...dragAttributes}
     >
-      {/* Top row: status badge + due dot */}
       <div style={s.cardTop}>
         <span style={{ ...s.badge, background: sm.bg, color: sm.color }}>{sm.label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {/* Due date dot */}
           {due.state !== 'none' && (
             <span title={`${formatDue(card.dueDate)} · ${due.label}`} style={{ ...s.dueDot, background: due.color }} />
           )}
-          {/* Delete button on hover */}
           {hovered && !overlay && (
-            <button
-              style={{ ...s.iconBtn, color: 'var(--urgent)' }}
-              onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onDelete(card.id) }}
-            >
-              <Trash2 size={11} />
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <button
+                title="Delete"
+                style={{ ...s.iconBtn, color: 'var(--urgent)', padding: 5 }}
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); onDelete?.(card.id) }}
+              >
+                <Trash2 size={14} />
+              </button>
+              <button
+                title="Archive"
+                style={{ ...s.iconBtn, color: 'var(--jade)', padding: 5 }}
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); onArchive?.(card.id) }}
+              >
+                <Archive size={14} />
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -370,7 +428,6 @@ function CardChip({ card, flashing, onEdit, onDelete, dragListeners, dragAttribu
       <p style={s.cardTitle}>{card.title}</p>
       {card.desc && <p style={s.cardDesc}>{card.desc}</p>}
 
-      {/* Due date label if set */}
       {due.state !== 'none' && (
         <div style={s.metaRow}>
           <span style={{ ...s.metaText, color: due.color }}>{formatDue(card.dueDate)}</span>
@@ -379,7 +436,6 @@ function CardChip({ card, flashing, onEdit, onDelete, dragListeners, dragAttribu
         </div>
       )}
 
-      {/* Subcard progress */}
       {totalSubcards > 0 && (
         <div style={s.metaRow}>
           <Layers size={10} color="var(--muted)" />
@@ -390,7 +446,6 @@ function CardChip({ card, flashing, onEdit, onDelete, dragListeners, dragAttribu
         </div>
       )}
 
-      {/* Link count */}
       {(card.links || []).length > 0 && (
         <div style={s.metaRow}>
           <Link size={10} color="var(--muted)" />
@@ -401,37 +456,37 @@ function CardChip({ card, flashing, onEdit, onDelete, dragListeners, dragAttribu
   )
 }
 
-const s = {
-  page:         { padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, height: 'calc(100vh - 52px)', overflow: 'auto', backgroundAttachment: 'fixed' },
-  topRow:       { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  titleArea:    { display: 'flex', alignItems: 'baseline', gap: 12 },
-  pageTitle:    { fontSize: 20, fontWeight: 600, color: 'var(--text)' },
-  count:        { fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' },
-  addBtn:       { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--jade)', color: '#0D1A13', border: 'none', borderRadius: 'var(--radius)', padding: '8px 14px', fontSize: 13, fontWeight: 600, fontFamily: "'DM Mono', monospace", cursor: 'pointer' },
-  iconBarBtn:   { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '7px 12px', fontSize: 12, fontFamily: "'DM Mono', monospace", cursor: 'pointer', position: 'relative' },
+const s: Record<string, CSSProperties> = {
+  page: { padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, height: 'calc(100vh - 52px)', overflow: 'auto', backgroundAttachment: 'fixed' },
+  topRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  titleArea: { display: 'flex', alignItems: 'baseline', gap: 12 },
+  pageTitle: { fontSize: 20, fontWeight: 600, color: 'var(--text)' },
+  count: { fontFamily: "'DM Mono', monospace", fontSize: 12, color: 'var(--muted)' },
+  addBtn: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--jade)', color: '#0D1A13', border: 'none', borderRadius: 'var(--radius)', padding: '8px 14px', fontSize: 13, fontWeight: 600, fontFamily: "'DM Mono', monospace", cursor: 'pointer' },
+  iconBarBtn: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface)', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '7px 12px', fontSize: 12, fontFamily: "'DM Mono', monospace", cursor: 'pointer', position: 'relative' },
   archiveBadge: { background: 'var(--jade)', color: '#0D1A13', borderRadius: 10, padding: '1px 6px', fontSize: 10, fontWeight: 700 },
-  legend:       { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '9px 16px' },
-  legendItem:   { display: 'flex', alignItems: 'center', gap: 5 },
-  legendDot:    { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
-  legendBar:    { width: 12, height: 3, borderRadius: 2, flexShrink: 0 },
-  legendLabel:  { fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' },
-  legendDivider:{ width: 1, height: 14, background: 'var(--border)', margin: '0 2px' },
-  board:        { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, flex: 1, minHeight: 0 },
-  column:       { background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  colHeader:    { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderTop: '2px solid', borderBottom: '1px solid var(--border)' },
-  colTitle:     { fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--text)', letterSpacing: '0.07em', textTransform: 'uppercase' },
-  colCount:     { fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' },
-  cardList:     { padding: 10, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', flex: 1, minHeight: 60 },
-  card:         { background: 'var(--elevated)', border: '1px solid var(--border)', borderLeft: '3px solid', borderRadius: 'var(--radius)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 5, transition: 'box-shadow 0.15s' },
-  cardTop:      { display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 20 },
-  badge:        { fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 10 },
-  dueDot:       { width: 9, height: 9, borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 4px currentColor' },
-  cardTitle:    { fontSize: 13, fontWeight: 500, color: 'var(--text)', lineHeight: 1.4 },
-  cardDesc:     { fontSize: 12, color: 'var(--muted)', lineHeight: 1.4 },
-  iconBtn:      { background: 'none', border: 'none', color: 'var(--muted)', display: 'flex', alignItems: 'center', padding: 3, borderRadius: 3, cursor: 'pointer' },
-  metaRow:      { display: 'flex', alignItems: 'center', gap: 5 },
-  metaText:     { fontFamily: "'DM Mono', monospace", fontSize: 10 },
-  progressTrack:{ flex: 1, height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', maxWidth: 56 },
+  legend: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '9px 16px' },
+  legendItem: { display: 'flex', alignItems: 'center', gap: 5 },
+  legendDot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
+  legendBar: { width: 12, height: 3, borderRadius: 2, flexShrink: 0 },
+  legendLabel: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' },
+  legendDivider: { width: 1, height: 14, background: 'var(--border)', margin: '0 2px' },
+  board: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, flex: 1, minHeight: 0 },
+  column: { background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  colHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderTop: '2px solid', borderBottom: '1px solid var(--border)' },
+  colTitle: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--text)', letterSpacing: '0.07em', textTransform: 'uppercase' },
+  colCount: { fontFamily: "'DM Mono', monospace", fontSize: 11, color: 'var(--muted)' },
+  cardList: { padding: 10, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', flex: 1, minHeight: 60 },
+  card: { background: 'var(--elevated)', border: '1px solid var(--border)', borderLeft: '3px solid', borderRadius: 'var(--radius)', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 5, transition: 'box-shadow 0.15s' },
+  cardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: 20 },
+  badge: { fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 10 },
+  dueDot: { width: 9, height: 9, borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 4px currentColor' },
+  cardTitle: { fontSize: 13, fontWeight: 500, color: 'var(--text)', lineHeight: 1.4 },
+  cardDesc: { fontSize: 12, color: 'var(--muted)', lineHeight: 1.4 },
+  iconBtn: { background: 'none', border: 'none', color: 'var(--muted)', display: 'flex', alignItems: 'center', padding: 3, borderRadius: 3, cursor: 'pointer' },
+  metaRow: { display: 'flex', alignItems: 'center', gap: 5 },
+  metaText: { fontFamily: "'DM Mono', monospace", fontSize: 10 },
+  progressTrack: { flex: 1, height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', maxWidth: 56 },
   progressFill: { height: '100%', background: 'var(--jade)', borderRadius: 2, transition: 'width 0.2s' },
-  inlineAdd:    { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--radius)', color: 'var(--faint)', padding: '7px', fontSize: 12, fontFamily: "'DM Mono', monospace", width: '100%', cursor: 'pointer' },
+  inlineAdd: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--radius)', color: 'var(--faint)', padding: '7px', fontSize: 12, fontFamily: "'DM Mono', monospace", width: '100%', cursor: 'pointer' },
 }

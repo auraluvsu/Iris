@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useState, CSSProperties } from 'react'
 import { Lock } from 'lucide-react'
 
-export default function PasswordGate({ onUnlock }) {
-  const [val,      setVal]      = useState('')
-  const [shake,    setShake]    = useState(false)
-  const [fading,   setFading]   = useState(false)
+interface PasswordGateProps {
+  onUnlock: () => void
+}
 
-  const attempt = () => {
+export default function PasswordGate({ onUnlock }: PasswordGateProps) {
+  const [val, setVal] = useState('')
+  const [shake, setShake] = useState(false)
+  const [fading, setFading] = useState(false)
+
+  const attempt = (): void => {
     const correct = import.meta.env.VITE_APP_PASSWORD
     if (val === correct) {
       setFading(true)
@@ -48,7 +52,7 @@ export default function PasswordGate({ onUnlock }) {
   )
 }
 
-const styles = {
+const styles: Record<string, CSSProperties> = {
   wrap: {
     height: '100vh', display: 'flex', alignItems: 'center',
     justifyContent: 'center', background: 'var(--bg)',
