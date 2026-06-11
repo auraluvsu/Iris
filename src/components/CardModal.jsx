@@ -157,6 +157,13 @@ export default function CardModal({ card, onSave, onClose, onArchive }) {
             </div>
           </Field>
 
+          {/* Pomodoro — only shown when editing an existing card */}
+          {isEdit && (
+            <Field label="Pomodoro timer">
+              <PomodoroInline cardId={card.id} cardTitle={card.title || title} />
+            </Field>
+          )}
+
           {/* Subcards */}
           <Field label={`Subcards (${subcards.filter(s => s.done).length}/${subcards.length})`}>
             <div style={s.subList}>
