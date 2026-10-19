@@ -1,7 +1,7 @@
 import { X, Check } from 'lucide-react'
 import { CSSProperties } from 'react'
 
-interface Backdrop {
+export interface Backdrop {
   id: string
   label: string
   style: CSSProperties
@@ -13,58 +13,30 @@ export const BACKDROPS: Backdrop[] = [
     label: 'Default',
     style: { background: 'var(--bg)' },
   },
-  {
-    id: 'grid',
-    label: 'Grid',
+  ...[
+    'benjamin-voros-phIFdC6lA4E',
+    'breno-machado-in9-n0JwgZ0',
+    'cristina-gottardi-CSpjU6hYo_0',
+    'daniel-leone-v7daTKlZzaw',
+    'elias-var-T3JOkIJImeo',
+    'jms-kFHz9Xh3PPU',
+    'kalen-emsley-Bkci_8qcdvQ',
+    'luca-bravo-zAjdgNXsMeg',
+    'luca-micheli-ruWkmt3nU58',
+    'nasa-Q1p7bh3SHj8',
+    'pietro-de-grandi-T7K4aEPoGGk',
+    'qingbao-meng-01_igFr7hd4',
+    'ran-liwen-y8JAcW8i53M',
+    'urban-vintage-78A265wPiO4',
+  ].map((file, i): Backdrop => ({
+    id: `photo-${i + 1}`,
+    label: `Photo ${i + 1}`,
     style: {
-      backgroundColor: '#1C1F1E',
-      backgroundImage: 'linear-gradient(rgba(61,170,122,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(61,170,122,0.07) 1px, transparent 1px)',
-      backgroundSize: '32px 32px',
+      backgroundImage: `url('/backdrops/${file}.webp')`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
     },
-  },
-  {
-    id: 'dots',
-    label: 'Dots',
-    style: {
-      backgroundColor: '#1C1F1E',
-      backgroundImage: 'radial-gradient(circle, rgba(61,170,122,0.2) 1px, transparent 1px)',
-      backgroundSize: '24px 24px',
-    },
-  },
-  {
-    id: 'noise',
-    label: 'Noise',
-    style: {
-      backgroundColor: '#1C1F1E',
-      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E")`,
-    },
-  },
-  {
-    id: 'diagonal',
-    label: 'Lines',
-    style: {
-      backgroundColor: '#1C1F1E',
-      backgroundImage: 'repeating-linear-gradient(45deg, rgba(61,170,122,0.05) 0px, rgba(61,170,122,0.05) 1px, transparent 1px, transparent 18px)',
-    },
-  },
-  {
-    id: 'topography',
-    label: 'Contour',
-    style: {
-      backgroundColor: '#1C1F1E',
-      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpath d='M0 50 Q25 30 50 50 Q75 70 100 50' fill='none' stroke='rgba(61,170,122,0.08)' stroke-width='1.5'/%3E%3Cpath d='M0 30 Q25 10 50 30 Q75 50 100 30' fill='none' stroke='rgba(61,170,122,0.06)' stroke-width='1.5'/%3E%3Cpath d='M0 70 Q25 50 50 70 Q75 90 100 70' fill='none' stroke='rgba(61,170,122,0.06)' stroke-width='1.5'/%3E%3C/svg%3E")`,
-      backgroundSize: '100px 100px',
-    },
-  },
-  {
-    id: 'circuit',
-    label: 'Circuit',
-    style: {
-      backgroundColor: '#1C1F1E',
-      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect x='10' y='10' width='60' height='60' fill='none' stroke='rgba(61,170,122,0.07)' stroke-width='1'/%3E%3Ccircle cx='10' cy='10' r='2' fill='rgba(61,170,122,0.15)'/%3E%3Ccircle cx='70' cy='70' r='2' fill='rgba(61,170,122,0.15)'/%3E%3Ccircle cx='70' cy='10' r='2' fill='rgba(61,170,122,0.1)'/%3E%3Ccircle cx='10' cy='70' r='2' fill='rgba(61,170,122,0.1)'/%3E%3Cline x1='40' y1='10' x2='40' y2='0' stroke='rgba(61,170,122,0.08)' stroke-width='1'/%3E%3Cline x1='70' y1='40' x2='80' y2='40' stroke='rgba(61,170,122,0.08)' stroke-width='1'/%3E%3C/svg%3E")`,
-      backgroundSize: '80px 80px',
-    },
-  },
+  })),
 ]
 
 interface BackdropPickerProps {
