@@ -4,7 +4,6 @@ import {
   useRef,
   useEffect,
   CSSProperties,
-  ReactNode,
 } from "react";
 import {
   DndContext,
@@ -22,7 +21,6 @@ import {
   verticalListSortingStrategy,
   useSortable,
   arrayMove,
-  SortableContextProps,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, Trash2, Link, Layers, Palette, Archive } from "lucide-react";
@@ -30,18 +28,7 @@ import CardModal from "../components/CardModal";
 import BackdropPicker, { BACKDROPS } from "../components/BackdropPicker";
 import ArchiveDrawer from "../components/ArchiveDrawer";
 import { getDueState, formatDue } from "../utils/dueDate";
-
-interface Card {
-  id: string;
-  title: string;
-  desc: string;
-  status: "urgent" | "pressing" | "lenient";
-  stage: "todo" | "inprogress" | "done";
-  subcards: Array<{ id: string; text: string; done: boolean }>;
-  links: Array<{ id: string; url: string; title: string }>;
-  dueDate: string;
-  archivedAt?: string;
-}
+import type { Card } from "../types";
 
 interface ModalState {
   card?: Partial<Card>;
@@ -84,8 +71,6 @@ const STAGE_META: Record<string, StageMeta> = {
 
 const STAGES = ["todo", "inprogress", "done"] as const;
 
-const SEED: Card[] = [];
-
 function load<T>(key: string, fallback: T): T {
   try {
     return JSON.parse(localStorage.getItem(key) ?? "") ?? fallback;
@@ -95,7 +80,7 @@ function load<T>(key: string, fallback: T): T {
 }
 
 export default function TasksPage() {
-  const [cards, setCards] = useState<Card[]>(() => load("cards", SEED));
+  const [cards, setCards] = useState<Card[]>(() => load("cards", []));
   const [archived, setArchived] = useState<Card[]>(() => load("archived", []));
   const [modal, setModal] = useState<ModalState | null>(null);
   const [backdropId, setBackdropId] = useState(() =>
@@ -143,8 +128,7 @@ export default function TasksPage() {
   const restoreCard = (id: string): void => {
     const card = archived.find((c) => c.id === id);
     if (!card) return;
-    const { archivedAt, ...rest } = card;
-    persist([...cards, rest]);
+    persist([...cards, { ...card, archivedAt: undefined }]);
     persistAr(archived.filter((c) => c.id !== id));
   };
 

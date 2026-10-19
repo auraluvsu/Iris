@@ -33,28 +33,6 @@ const TYPE_META: Record<string, TypeMetaItem> = {
   numeric: { icon: <Hash size={13} />, label: "Numbered" },
 };
 
-const SEED_LISTS: TaskList[] = [
-  {
-    id: "1",
-    name: "Reading list",
-    type: "bullet",
-    items: [
-      { id: "a", text: "The Art of Problem Solving", done: false },
-      { id: "b", text: "Options, Futures and Other Derivatives", done: false },
-    ],
-  },
-  {
-    id: "2",
-    name: "Dev setup checklist",
-    type: "checkbox",
-    items: [
-      { id: "c", text: "Neovim LSP configured", done: true },
-      { id: "d", text: "clangd + compile_commands.json", done: true },
-      { id: "e", text: "Hyprland keybinds documented", done: false },
-    ],
-  },
-];
-
 export default function ListsPage() {
   const [lists, setLists] = useState<TaskList[]>(() => {
     try {
@@ -63,7 +41,7 @@ export default function ListsPage() {
       return [];
     }
   });
-  const [activeId, setActiveId] = useState(SEED_LISTS[0].id);
+  const [activeId, setActiveId] = useState(() => lists[0]?.id || "");
   const [newListName, setNewListName] = useState("");
   const [newListType, setNewListType] = useState<
     "checkbox" | "bullet" | "numeric"

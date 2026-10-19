@@ -2,17 +2,7 @@ import { useState, useEffect, CSSProperties } from 'react'
 import { X, Plus, CheckCircle2, Circle, Timer, ChevronDown } from 'lucide-react'
 import { getDueState, formatDue } from '../utils/dueDate'
 import { usePomodoro } from '../utils/pomodoroContext'
-
-interface Card {
-  id: string
-  title: string
-  desc: string
-  status: 'urgent' | 'pressing' | 'lenient'
-  stage: 'todo' | 'inprogress' | 'done'
-  subcards: Array<{ id: string; title: string; text?: string; done: boolean }>
-  links: Array<{ id: string; url: string; title: string }>
-  dueDate: string
-}
+import type { Card } from '../types'
 
 interface StatusMeta {
   label: string
