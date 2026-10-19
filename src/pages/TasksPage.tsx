@@ -1,10 +1,4 @@
-import {
-  useState,
-  useMemo,
-  useRef,
-  useEffect,
-  CSSProperties,
-} from "react";
+import { useState, useMemo, useRef, useEffect, CSSProperties } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Plus, Trash2, Link, Layers, Palette, Archive } from "lucide-react";
 import CardModal from "../components/CardModal";
 import BackdropPicker, { BACKDROPS } from "../components/BackdropPicker";
+import BackdropLayers from "../components/BackdropLayers";
 import ArchiveDrawer from "../components/ArchiveDrawer";
 import { getDueState, formatDue } from "../utils/dueDate";
 import type { Card } from "../types";
@@ -207,7 +202,8 @@ export default function TasksPage() {
   };
 
   return (
-    <div style={{ ...s.page, ...backdrop.style }}>
+    <div style={{ ...s.page, position: "relative", zIndex: 0 }}>
+      <BackdropLayers backdrop={backdrop} />
       <style>{`
         @keyframes doneFlash {
           0%   { box-shadow: 0 0 0 0   rgba(61,170,122,0);    background: var(--elevated); }
@@ -680,7 +676,9 @@ const s: Record<string, CSSProperties> = {
     minHeight: 0,
   },
   column: {
-    background: "var(--surface)",
+    background: "rgba(35, 40, 38, 0.4)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
     borderRadius: "var(--radius-lg)",
     border: "1px solid var(--border)",
     display: "flex",
@@ -789,9 +787,9 @@ const s: Record<string, CSSProperties> = {
     background: "none",
     border: "1px dashed var(--border)",
     borderRadius: "var(--radius)",
-    color: "var(--faint)",
+    color: "#29c293",
     padding: "7px",
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: "'DM Mono', monospace",
     width: "100%",
     cursor: "pointer",
