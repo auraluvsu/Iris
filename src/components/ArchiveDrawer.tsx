@@ -1,16 +1,7 @@
 import { useState, CSSProperties } from 'react'
 import { X, RotateCcw, Trash2, Archive } from 'lucide-react'
 import { getDueState, formatDue } from '../utils/dueDate'
-
-interface Card {
-  id: string
-  title: string
-  desc: string
-  status: 'urgent' | 'pressing' | 'lenient'
-  stage: 'todo' | 'inprogress' | 'done'
-  dueDate: string
-  archivedAt?: string
-}
+import type { Card } from '../types'
 
 interface StatusMeta {
   label: string

@@ -10,7 +10,6 @@ interface PomodoroInlineProps {
 export function PomodoroInline({ cardId, cardTitle }: PomodoroInlineProps) {
   const pom = usePomodoro()
   const isThis = pom.cardId === cardId
-  const paused = isThis && !pom.running && pom.cardId !== null
   const sessions = pom.sessions[cardId] || 0
   const progress = isThis
     ? 1 - pom.remaining / (pom.phase === 'work' ? pom.WORK_SECS : pom.BREAK_SECS)

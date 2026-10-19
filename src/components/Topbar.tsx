@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Focus, Download, LucideIcon } from "lucide-react"
+import { LayoutGrid, List, Focus, Download } from "lucide-react"
 import { ReactNode } from "react"
 import { exportJSON } from "../utils/exportData"
 

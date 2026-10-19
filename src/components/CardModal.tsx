@@ -8,32 +8,9 @@ import {
   Loader,
   Archive,
 } from "lucide-react";
-import { getDueState, formatDue } from "../utils/dueDate";
+import { getDueState } from "../utils/dueDate";
 import { PomodoroInline } from "./PomodoroTimer";
-
-interface Subcard {
-  id: string;
-  title: string;
-  text?: string;
-  done: boolean;
-}
-
-interface LinkItem {
-  id: string;
-  url: string;
-  title: string;
-}
-
-interface Card {
-  id?: string;
-  title: string;
-  desc: string;
-  status: "urgent" | "pressing" | "lenient";
-  stage: "todo" | "inprogress" | "done";
-  subcards: Subcard[];
-  links: LinkItem[];
-  dueDate: string;
-}
+import type { Card, CardStatus, CardStage, LinkItem, Subcard } from "../types";
 
 interface StatusOption {
   value: "urgent" | "pressing" | "lenient";
@@ -73,12 +50,8 @@ export default function CardModal({
 }: CardModalProps) {
   const [title, setTitle] = useState(card?.title || "");
   const [desc, setDesc] = useState(card?.desc || "");
-  const [status, setStatus] = useState<"urgent" | "pressing" | "lenient">(
-    card?.status || "lenient",
-  );
-  const [stage, setStage] = useState<"todo" | "inprogress" | "done">(
-    card?.stage || "todo",
-  );
+  const [status, setStatus] = useState<CardStatus>(card?.status || "lenient");
+  const [stage, setStage] = useState<CardStage>(card?.stage || "todo");
   const [dueDate, setDueDate] = useState(card?.dueDate || "");
   const [subcards, setSubcards] = useState<Subcard[]>(card?.subcards || []);
   const [links, setLinks] = useState<LinkItem[]>(card?.links || []);
