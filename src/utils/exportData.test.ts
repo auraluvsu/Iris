@@ -2,22 +2,18 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { exportJSON } from './exportData'
 
 describe('exportJSON', () => {
-  let clicked: HTMLAnchorElement | null
   let blobText: string
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 5, 10, 12, 0, 0))
-    clicked = null
     blobText = ''
 
     vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mock'), revokeObjectURL: vi.fn() })
     vi.stubGlobal('Blob', class {
       constructor(parts: string[]) { blobText = parts.join('') }
     })
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
-      clicked = this
-    })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
   })
 
   afterEach(() => {
@@ -53,7 +49,9 @@ describe('exportJSON', () => {
   })
 
   it('names the download dashboard-export-YYYY-MM-DD.json', () => {
+    const createElement = vi.spyOn(document, 'createElement')
     exportJSON()
-    expect(clicked?.download).toBe('dashboard-export-2026-06-10.json')
+    const anchor = createElement.mock.results.map(r => r.value).find(el => el instanceof HTMLAnchorElement)
+    expect(anchor?.download).toBe('dashboard-export-2026-06-10.json')
   })
 })
