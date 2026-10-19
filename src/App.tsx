@@ -6,17 +6,7 @@ import ListsPage from './pages/ListsPage'
 import FocusMode from './components/FocusMode'
 import { PomodoroFloating } from './components/PomodoroTimer'
 import { PomodoroProvider } from './utils/pomodoroContext'
-
-interface Card {
-  id: string
-  title: string
-  desc: string
-  status: 'urgent' | 'pressing' | 'lenient'
-  stage: 'todo' | 'inprogress' | 'done'
-  subcards: Array<{ id: string; text: string; done: boolean }>
-  links: Array<{ id: string; url: string; title: string }>
-  dueDate: string
-}
+import type { Card } from './types'
 
 function Dashboard() {
   const [page, setPage] = useState<'tasks' | 'lists'>('tasks')
