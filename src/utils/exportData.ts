@@ -1,14 +1,4 @@
-interface Card {
-  id: string
-  title: string
-  desc: string
-  status: 'urgent' | 'pressing' | 'lenient'
-  stage: 'todo' | 'inprogress' | 'done'
-  subcards: Array<{ id: string; text: string; done: boolean }>
-  links: Array<{ id: string; url: string; title: string }>
-  dueDate: string
-  archivedAt?: string
-}
+import type { Card } from '../types'
 
 interface ExportPayload {
   exportedAt: string
