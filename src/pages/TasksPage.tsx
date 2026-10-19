@@ -539,6 +539,7 @@ function CardChip({
                 title="Delete"
                 style={{ ...s.iconBtn, color: "var(--urgent)", padding: 5 }}
                 onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete?.(card.id);
@@ -550,6 +551,7 @@ function CardChip({
                 title="Archive"
                 style={{ ...s.iconBtn, color: "var(--jade)", padding: 5 }}
                 onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
                   onArchive?.(card.id);
