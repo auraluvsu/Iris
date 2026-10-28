@@ -24,7 +24,9 @@ function Dashboard() {
       );
       localStorage.setItem("cards", JSON.stringify(updated));
       setReloadKey((k) => k + 1);
-    } catch {}
+    } catch {
+      throw new Error("Error handling focus done");
+    }
   };
 
   const getLiveCards = (): Card[] => {

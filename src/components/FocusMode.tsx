@@ -8,7 +8,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getDueState, formatDue } from "../utils/dueDate";
-import { usePomodoro } from "../utils/pomodoroContext";
+import { usePomodoro } from "../types.constants.ts";
 import type { Card } from "../types";
 
 interface StatusMeta {
@@ -43,7 +43,9 @@ export default function FocusMode({
       const saved: string = JSON.parse(localStorage.getItem(todayKey) ?? "");
       if (Array.isArray(saved))
         return saved.filter((id) => cards.find((c) => c.id === id));
-    } catch {}
+    } catch {
+      throw new Error("Error with focus mode");
+    }
     return [];
   });
   const [picking, setPicking] = useState(selectedIds.length === 0);
