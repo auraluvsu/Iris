@@ -9,7 +9,7 @@ A modern, feature-rich task management application built with React and Vite. Or
 - **Priority Levels**: Assign tasks one of three priority levels (Urgent, Pressing, Lenient) with visual indicators
 - **Drag & Drop**: Reorder tasks within columns using drag-and-drop functionality
 - **Due Dates**: Set and track due dates for tasks with visual urgency indicators
-- **Subtasks & Links**: Add subtasks to break down work and include reference links
+- **Subtasks & Links**: Add subtasks to break down work and include reference links.
 
 ### Focus Mode
 - **Daily Focus Selection**: Pick up to 3 tasks each day to focus on
@@ -206,6 +206,7 @@ The project uses ESLint with React-specific rules and hooks validation.
 - Password-protected access via environment variable
 - Session-based authentication stored in sessionStorage
 - All data stored locally in browser (no server required)
+- Note that any links provided will be fetched from https://api.allorigins.win/geturl= to generate titles
 
 ## Browser Compatibility
 
