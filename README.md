@@ -9,7 +9,7 @@ A modern, feature-rich task management application built with React and Vite. Or
 - **Priority Levels**: Assign tasks one of three priority levels (Urgent, Pressing, Lenient) with visual indicators
 - **Drag & Drop**: Reorder tasks within columns using drag-and-drop functionality
 - **Due Dates**: Set and track due dates for tasks with visual urgency indicators
-- **Subtasks & Links**: Add subtasks to break down work and include reference links
+- **Subtasks & Links**: Add subtasks to break down work and include reference links.
 
 ### Focus Mode
 - **Daily Focus Selection**: Pick up to 3 tasks each day to focus on
@@ -30,31 +30,24 @@ A modern, feature-rich task management application built with React and Vite. Or
 ### Data Management
 - **JSON Export**: Export your tasks as JSON for backup or external use
 - **Customizable Backdrops**: Choose from multiple background themes
-- **Password Protection**: Secure your task data with a simple password gate
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v18 or later recommended)
+- Node.ts (v18 or later recommended)
 - npm or yarn
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd task-tracker
+git clone git@github.com/auraluvsu/iris.git
+cd iris
 ```
 
 2. Install dependencies:
 ```bash
 npm install
-```
-
-3. Set up environment variables:
-Create a `.env` file in the project root (example provided):
-```
-VITE_APP_PASSWORD=your-password-here
 ```
 
 ### Development
@@ -86,7 +79,6 @@ npm run preview
 
 ### Accessing the App
 1. Open the application in your browser
-2. Enter the password (default: "breath") when prompted
 3. You'll be taken to the Tasks page
 
 ### Managing Tasks
@@ -156,27 +148,26 @@ Your daily focus selection is saved and persists until the next day.
 task-tracker/
 ├── src/
 │   ├── components/          # Reusable React components
-│   │   ├── CardModal.jsx    # Task creation/editing modal
-│   │   ├── FocusMode.jsx    # Focus mode workspace
-│   │   ├── PomodoroTimer.jsx # Pomodoro timer component
-│   │   ├── PasswordGate.jsx # Password protection gate
-│   │   ├── ArchiveDrawer.jsx # Archive management
-│   │   ├── Topbar.jsx       # Navigation and controls
-│   │   └── BackdropPicker.jsx # Theme selection
+│   │   ├── CardModal.tsx    # Task creation/editing modal
+│   │   ├── FocusMode.tsx    # Focus mode workspace
+│   │   ├── PomodoroTimer.tsx # Pomodoro timer component
+│   │   ├── ArchiveDrawer.tsx # Archive management
+│   │   ├── Topbar.tsx       # Navigation and controls
+│   │   └── BackdropPicker.tsx # Theme selection
 │   ├── pages/               # Page-level components
-│   │   ├── TasksPage.jsx    # Main kanban board
-│   │   └── ListsPage.jsx    # Additional lists view
+│   │   ├── TasksPage.tsx    # Main kanban board
+│   │   └── ListsPage.tsx    # Additional lists view
 │   ├── utils/
-│   │   ├── pomodoroContext.jsx # Pomodoro state management
-│   │   ├── dueDate.js       # Due date utilities
-│   │   └── exportData.js    # Data export functionality
-│   ├── App.jsx              # Root component
-│   ├── main.jsx             # Entry point
+│   │   ├── pomodoroContext.tsx # Pomodoro state management
+│   │   ├── dueDate.ts       # Due date utilities
+│   │   └── exportData.ts    # Data export functionality
+│   ├── App.tsx              # Root component
+│   ├── main.tsx             # Entry point
 │   └── index.css            # Global styles
 ├── public/                  # Static assets
 ├── index.html               # HTML template
-├── vite.config.js          # Vite configuration
-├── eslint.config.js        # ESLint rules
+├── vite.config.ts          # Vite configuration
+├── eslint.config.ts        # ESLint rules
 ├── package.json            # Dependencies and scripts
 └── README.md              # This file
 ```
@@ -203,9 +194,9 @@ The project uses ESLint with React-specific rules and hooks validation.
 
 ## Security
 
-- Password-protected access via environment variable
 - Session-based authentication stored in sessionStorage
 - All data stored locally in browser (no server required)
+- Note that any links provided will be fetched from https://api.allorigins.win/geturl= to generate titles
 
 ## Browser Compatibility
 
@@ -218,7 +209,6 @@ The project uses ESLint with React-specific rules and hooks validation.
 - **React Fast Refresh** enabled in development for instant updates
 - **Vite's Module Federation** for efficient bundling
 - **Local Storage** for instant persistence without network calls
-- **Lazy Loading** via code splitting for optimal initial load
 
 ## Tips & Best Practices
 
@@ -229,10 +219,6 @@ The project uses ESLint with React-specific rules and hooks validation.
 5. **Export Backups**: Periodically export your tasks as JSON for backup
 
 ## Troubleshooting
-
-**Password not working?**
-- Check that the password in `.env` matches what you're entering
-- Ensure the `.env` file is in the project root and properly formatted
 
 **Data not persisting?**
 - Check browser's Local Storage settings (not disabled or full)

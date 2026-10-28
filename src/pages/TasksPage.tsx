@@ -9,6 +9,7 @@ import {
   useDroppable,
   DragStartEvent,
   DragEndEvent,
+  DraggableAttributes,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -19,11 +20,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, Trash2, Link, Layers, Palette, Archive } from "lucide-react";
 import CardModal from "../components/CardModal";
-import BackdropPicker, { BACKDROPS } from "../components/BackdropPicker";
+import BackdropPicker from "../components/BackdropPicker";
 import BackdropLayers from "../components/BackdropLayers";
+import { BACKDROPS } from "../types.constants";
 import ArchiveDrawer from "../components/ArchiveDrawer";
 import { getDueState, formatDue } from "../utils/dueDate";
-import type { Card } from "../types";
+import type { Card, CardStage } from "../types";
+import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 interface ModalState {
   card?: Partial<Card>;
@@ -174,15 +177,15 @@ export default function TasksPage() {
     const card = cards.find((c) => c.id === activeId);
     if (!card) return;
 
-    const targetStage = STAGES.includes(overId as any)
+    const targetStage: string = STAGES.includes(overId as CardStage)
       ? overId
       : (cards.find((c) => c.id === overId)?.stage ?? card.stage);
 
     let updated = cards.map((c) =>
-      c.id === activeId ? { ...c, stage: targetStage as any } : c,
+      c.id === activeId ? { ...c, stage: targetStage as CardStage } : c,
     );
 
-    if (!STAGES.includes(overId as any)) {
+    if (!STAGES.includes(overId as CardStage)) {
       const stageCards = updated.filter((c) => c.stage === targetStage);
       const otherCards = updated.filter((c) => c.stage !== targetStage);
       const fromIdx = stageCards.findIndex((c) => c.id === activeId);
@@ -448,8 +451,8 @@ interface CardChipProps {
   onEdit?: (card: Card) => void;
   onDelete?: (id: string) => void;
   onArchive?: (id: string) => void;
-  dragListeners?: any;
-  dragAttributes?: any;
+  dragListeners?: SyntheticListenerMap;
+  dragAttributes?: DraggableAttributes;
   overlay?: boolean;
 }
 
